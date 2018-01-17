@@ -15,6 +15,9 @@
       <article class="devsite-article-inner">
         {% include "includes/ratings-container.html" %}
         <div class="devsite-article-body clearfix">
+          <p>
+            {% upper %}This will appear in uppercase, {{ pageTitle }}.{% endupper %}
+          </p>
           {% autoescape off %}
           {{ content }}
           {% endautoescape %}

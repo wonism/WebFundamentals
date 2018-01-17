@@ -6,6 +6,9 @@ import markdown
 import devsiteHelper
 from google.appengine.ext.webapp.template import render
 
+from google.appengine.ext.webapp import template
+template.register_template_library('tags.pete')
+
 SOURCE_PATH = os.path.join(os.path.dirname(__file__), 'src/content/')
 
 
