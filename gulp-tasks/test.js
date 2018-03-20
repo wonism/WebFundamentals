@@ -573,6 +573,8 @@ gulp.task('test', ['test:travis-init'], function() {
     gutil.log(' ', chalk.cyan('--ignoreMissingFeedWidget'),
       'Skips feed widget check on updates');
     gutil.log(' ', chalk.cyan('--skipTypos'), 'Skips common typo checks');
+    // gutil.log(' ', chalk.cyan('--skipSiteRelative'),
+    //   'Skip site relative URL checks');
   }
 
   if ((global.WF.options.testMaster) ||
@@ -588,6 +590,7 @@ gulp.task('test', ['test:travis-init'], function() {
     global.WF.options.ignoreMissingFeedWidget = true;
     global.WF.options.hideIgnored = true;
     global.WF.options.skipTypos = true;
+    global.WF.options.skipSiteRelative = true;
   }
 
   let opts = {
@@ -690,6 +693,14 @@ gulp.task('test', ['test:travis-init'], function() {
     const msg = `${chalk.cyan('--skipTypos')} was used.`;
     gutil.log(chalk.bold.blue(' Option:'), msg);
     opts.skipTypos = true;
+  }
+
+  // Skips the site relative URL checks
+  if (global.WF.options.skipSiteRelative) {
+    // TODO: NYI
+    // const msg = `${chalk.cyan('--skipSiteRelative')} was used.`;
+    // gutil.log(chalk.bold.blue(' Option:'), msg);
+    // opts.skipSiteRelative = true;
   }
 
   return getFiles()
