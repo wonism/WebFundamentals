@@ -13,6 +13,7 @@ const wfHelper = require('../wfHelper');
  * @param {string} gitUrl URL to git repo.
  * @param {string} tag The tag to get.
  * @param {string} outPath Path to write the source code to
+ * @return {Promise} - task completion
  */
 const getSourceCode = (gitUrl, tag, outPath) => {
   fs.ensureDirSync(outPath);

@@ -17,7 +17,6 @@ const GitHubApi = require('github');
 const wfRegEx = require('./wfRegEx');
 const wfHelper = require('./wfHelper');
 
-
 const testBook = require('./tests/bookYaml');
 const testProject = require('./tests/projectYaml');
 const testRedirects = require('./tests/redirectsYaml');
@@ -255,7 +254,9 @@ function getFiles() {
   gutil.log(' Searching for files...');
   if (global.WF.options.testPath || global.WF.options.testAll) {
     return new Promise(function(resolve, reject) {
-      let globs = ['./gulp-tasks/**/*', './gulpfile.js'];
+      let globs = [
+        '!src/content/en/tools/puppeteer/_src/**/*',
+      ];
       let opts = {
         prefixBase: true,
         filter: 'isFile',
@@ -265,58 +266,68 @@ function getFiles() {
         if (global.WF.options.verbose) {
           gutil.log(' ', 'Searching for files in', chalk.cyan(testPath));
         }
-        opts.srcBase = global.WF.options.testPath;
-        globs.push('**/*');
+        globs.push(path.join(global.WF.options.testPath, '**/*'));
       } else {
-        opts.srcBase = './src/content';
+        globs.push('gulp-tasks/**/*');
+        globs.push('gulpfile.js');
+        globs.push('src/data/**/*');
         global.WF.options.lang.forEach(function(lang) {
           const testPath = `${opts.srcBase}/${lang}`;
           if (global.WF.options.verbose) {
             gutil.log(' ', 'Searching for files in', chalk.cyan(testPath));
           }
-          globs.push(`${lang}/**/*`);
+          globs.push(`src/content/${lang}/**/*`);
         });
       }
-      globs.push('!en/tools/puppeteer/_src/**/*');
       resolve(glob.find(globs, opts));
     });
   } else {
     gutil.log(' ', 'Searching for changed files');
-    let cmd = 'git --no-pager diff --name-only ';
+    let cmd = 'git --no-pager diff --name-status ';
     if (IS_TRAVIS) {
       cmd += '$(git merge-base FETCH_HEAD master) FETCH_HEAD';
     } else {
-      cmd += '$(git merge-base origin/master HEAD)';
+      cmd += '--find-copies-harder $(git merge-base origin/master HEAD)';
     }
     return wfHelper.promisedExec(cmd, '.')
-    .then(function(results) {
-      let files = [];
-      let warnForSideEffect = false;
-      results.split('\n').forEach(function(filename) {
-        if (RE_GULP_BASE.test(filename) || filename === 'gulpfile.js') {
-          warnForSideEffect = true;
-          files.push(filename);
-        } else if (RE_SRC_BASE.test(filename) || RE_DATA_BASE.test(filename) ||
-                   filename === 'app.yaml') {
-          files.push(filename);
+      .then((results) => {
+        const files = [];
+        results.trim().split('\n').forEach((file) => {
+          const details = file.split('\t');
+          const filename = details[1];
+          // If the file isn't in one of these directories, skip it!
+          if (!(RE_SRC_BASE.test(filename) ||
+                RE_DATA_BASE.test(filename) ||
+                RE_GULP_BASE.test(filename) ||
+                filename === 'app.yaml' ||
+                filename === 'gulpfile.js')) {
+            return;
+          }
+          // const action = details[0].trim().toUpperCase();
+          const result = {
+            action: details[0].trim().toUpperCase(),
+            filename: filename,
+          };
+          if (result.action.startsWith('C')) {
+            result.filename = details[2];
+            result.copyOf = details[1];
+          } else if (result.action.startsWith('R')) {
+            result.filename = details[2];
+            result.renamedFrom = details[1];
+          }
+          files.push(result);
+        });
+
+        const warnMsg = `More than ${MAX_FILES_CHANGED_WARNING} files changed.`;
+        if (files.length > MAX_FILES_CHANGED_ERROR) {
+          const msg = `Maxiumum number of changed files exceeeded.`;
+          logError('', null, `${msg} ${warnMsg}`);
+        } else if (files.length > MAX_FILES_CHANGED_WARNING) {
+          logWarning('', null, `${warnMsg}`);
         }
+
+        return files;
       });
-      if (warnForSideEffect === true) {
-        const warn = chalk.yellow('WARNING:');
-        const msg = `Gulp tasks have changed, be sure to run with ` +
-          `${chalk.cyan('--testAll')} or ${chalk.cyan('--testMaster')} ` +
-          `to catch any unintended side effects!`;
-        gutil.log(warn, msg);
-      }
-      const warnMsg = `More than ${MAX_FILES_CHANGED_WARNING} files changed.`;
-      if (files.length > MAX_FILES_CHANGED_ERROR) {
-        const msg = `Maxiumum number of changed files exceeeded.`;
-        logError('', null, `${msg} ${warnMsg}`);
-      } else if (files.length > MAX_FILES_CHANGED_WARNING) {
-        logWarning('', null, `${warnMsg}`);
-      }
-      return files;
-    });
   }
 }
 
@@ -695,9 +706,37 @@ gulp.task('test', ['test:travis-init'], function() {
   return getFiles()
     .then(function(files) {
       gutil.log(chalk.green('Testing'), 'files...');
-      return Promise.all(files.map(function(filename) {
+      return Promise.all(files.map(function(file) {
+        // Setup the filename and fileAction params
+        let fileAction = '';
+        let filename = file;
+        if (typeof filename === 'object') {
+          filename = file.filename;
+          fileAction = file.action;
+        }
         if (global.WF.options.verbose) {
           gutil.log('TESTING:', chalk.cyan(filename));
+        }
+        if (!global.WF.options.testAll &&
+            (RE_GULP_BASE.test(filename) || filename === 'gulpfile.js')) {
+          const msg = `Gulp tasks have changed, be sure to run with ` +
+            `${chalk.cyan('--testAll')} or ${chalk.cyan('--testMaster')} ` +
+            `to catch any unintended side effects!`;
+          logWarning(filename, null, msg);
+        }
+        if (fileAction.startsWith('C')) {
+          const msg = `File appears to be a copy of '${file.copyOf}'`;
+          logWarning(filename, null, msg);
+        }
+        if (fileAction.startsWith('D')) {
+          const msg = `File was deleted, don't forget to setup a redirect.`;
+          logWarning(filename, null, msg);
+          return Promise.resolve();
+        }
+        if (fileAction.startsWith('R')) {
+          const msg = `File was renamed from '${file.renamedFrom}', ` +
+            `don't forget to setup a redirect.`;
+          logWarning(filename, null, msg);
         }
         if (!validateFilename.test(filename)) {
           logError(filename, null, `File contains illegal characters.`);
