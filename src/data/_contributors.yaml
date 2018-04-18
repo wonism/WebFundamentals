@@ -109,12 +109,12 @@ kaycebasques:
     family: Basques
   org:
     name: Google
-    unit: Developer Relations
+    unit: Web DevRel
   country: US
   role:
     - author
   description:
-    en: Technical Writer for Chrome DevTools
+    en: Technical Writer, DevTools & Lighthouse
 
 beaufortfrancois:
   name:
