@@ -1,6 +1,6 @@
 project_path: /web/tools/_project.yaml
 book_path: /web/tools/_book.yaml
-description: A guide on how scoring works in Lighthouse.
+description: A guide on how scoring works in Lighthouse v3.
 
 {# wf_updated_on: 2018-05-01 #}
 {# wf_published_on: 2017-12-27 #}
@@ -13,6 +13,8 @@ description: A guide on how scoring works in Lighthouse.
 
 The scores that you see at the top of your Lighthouse report represent the page's score for
 that particular category. This guide explains how Lighthouse calculates those scores.
+
+TODO update screenshot. performance should be first. UI will change, too.
 
 <figure>
   <img src="images/category-scores.png" alt="The scores that you see next to Progressive
@@ -27,6 +29,8 @@ that particular category. This guide explains how Lighthouse calculates those sc
 
 ## The Performance score {: #perf }
 
+TODO patrick is getting data about how percentiles map to scores in v3
+
 Lighthouse returns a Performance score between 0 and 100. 0 is the lowest possible score. A 0
 score usually indicates an error in Lighthouse. If you see a 0 score repeatedly, please
 [file a bug on the Lighthouse repo][bug]{:.external}. 100 is the best possible score. Typically
@@ -35,6 +39,8 @@ a score above 90 represents the top 5 percent of top-performing pages.
 [bug]: https://github.com/GoogleChrome/lighthouse/issues/new
 
 ### Which Performance audits contribute to your score {: #perf-audits }
+
+TODO update link to spreadsheet
 
 In general, only the audits in the Metrics section of the Performance category contribute
 to your score. See [Scoring Details][details]{:.external} for the complete list.
@@ -51,7 +57,9 @@ The audits under Diagnostics and Opportunities do not contribute to your Perform
 Each Performance audit that contributes to your score has its own scoring methodology.
 Lighthouse maps each raw score to a number between 0 and 100. The scoring distribution is
 a log normal distribution derived from the performance metrics of real website performance
-data.
+data. A score of 50 typically maps to the 75th percentile for that audit. A score of 75 maps
+to the 90th percentile. In other words, if you get a score of 75, it means that your page
+performs better in that audit than 90% of pages on the web.
 
 For example, the First Meaningful Paint (FMP) audit measures when a user perceives that the
 primary content of a page is visible. The raw score for FMP represents the time duration between
